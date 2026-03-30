@@ -1,0 +1,140 @@
+INSIGHTS OF THE IPO TABLE 
+-- Market overview 
+--Premium vs flat vs loss
+--sell day vs hold 
+-- best month
+-- cheap vs expensive 
+-- best and worst ipos
+-------------------------------------------------------------------------------------------
+
+QUERIES FOR INSIGHTS 
+
+Market overview 
+SELECT COUNT(*) AS total_ipos,
+    ROUND(AVG(listing_gain)::numeric, 2)  AS avg_gain,
+	ROUND(MAX(listing_gain)::numeric, 2)  AS best_gain,
+    ROUND(MIN(listing_gain)::numeric, 2)  AS worst_gain,
+	Count (case when listing_gain >0 then 1 end ) as win ,
+	count(case when listing_gain <0 then 1 end ) as loss,
+	count(case when listing_gain =0 then 1 end ) as neutral,
+	Round(count(case when listing_gain >0 then 1 end )*100/ count(*), 2) as winner_chance 
+FROM ipo_data;
+
+---------------------------------------------------------------------------------------------
+
+Premium vs flat vs loss
+
+SELECT
+    CASE
+        WHEN listing_gain >= 20          THEN '1. Blockbuster (above 20%)'
+        WHEN listing_gain BETWEEN 10 
+             AND 20                      THEN '2. Good        (10% to 20%)'
+        WHEN listing_gain BETWEEN 0 
+             AND 10                      THEN '3. Mild        (0% to 10%)'
+        WHEN listing_gain BETWEEN -10 
+             AND 0                       THEN '4. Weak        (-10% to 0%)'
+        ELSE                                  '5. Disaster    (below -10%)'
+    END                                            AS performance_category,
+    COUNT(*)                                       AS total_ipos,
+    ROUND(COUNT(*) * 100.0 / SUM(COUNT(*)) 
+          OVER(), 1)                               AS percentage,
+    ROUND(AVG(listing_gain)::numeric, 2)           AS avg_gain,
+    ROUND(MAX(listing_gain)::numeric, 2)           AS best,
+    ROUND(MIN(listing_gain)::numeric, 2)           AS worst
+FROM ipo_data
+GROUP BY performance_category
+ORDER BY performance_category;
+
+---------------------------------------------------------------------------------------------------
+
+Sell day vs hold 
+SELECT
+    ROUND(AVG(listing_gain)::numeric, 2)  AS avg_sell_day1,
+    ROUND(AVG(profit_loss)::numeric, 2)   AS avg_hold_today,
+    ROUND((AVG(profit_loss) - AVG(listing_gain))::numeric, 2) AS extra_gain_by_holding
+FROM ipo_data;
+
+----------------------------------------------------------------------------------------------------
+
+best month
+
+SELECT
+    EXTRACT(MONTH FROM listed_on::date)::INT  AS month_number,
+    TO_CHAR(listed_on::date, 'Month')          AS month_name,
+    COUNT(*)                                   AS total_ipos,
+    ROUND(AVG(listing_gain)::numeric, 2)       AS avg_gain,
+    COUNT(CASE WHEN listing_gain > 0 THEN 1 END) AS winners,
+    COUNT(CASE WHEN listing_gain < 0 THEN 1 END) AS losers
+FROM ipo_data
+GROUP BY 
+    EXTRACT(MONTH FROM listed_on::date),
+    TO_CHAR(listed_on::date, 'Month')
+ORDER BY avg_gain DESC;
+
+
+-----------------------------------------------------------------------------------------------
+
+cheap vs expensive 
+
+SELECT
+    CASE
+        WHEN issue_price < 100          THEN '1. Low   (below ₹100)'
+        WHEN issue_price BETWEEN 100 
+             AND 500                    THEN '2. Mid   (₹100 to ₹500)'
+        WHEN issue_price BETWEEN 500 
+             AND 1000                   THEN '3. High  (₹500 to ₹1000)'
+        ELSE                                 '4. Premium (above ₹1000)'
+    END                                           AS price_band,
+    COUNT(*)                                      AS total_ipos,
+    ROUND(AVG(listing_gain)::numeric, 2)          AS avg_gain,
+    ROUND(MAX(listing_gain)::numeric, 2)          AS best_gain,
+    ROUND(MIN(listing_gain)::numeric, 2)          AS worst_gain,
+    COUNT(CASE WHEN listing_gain > 0 THEN 1 END)  AS winners,
+    COUNT(CASE WHEN listing_gain < 0 THEN 1 END)  AS losers
+FROM ipo_data
+GROUP BY price_band
+ORDER BY price_band;
+
+--------------------------------------------------------------------------------------------
+
+
+
+-- Top 10 Best IPOs
+SELECT
+    company,
+    issue_price,
+    listing_close,
+    listing_gain,
+    profit_loss
+FROM ipo_data
+ORDER BY listing_gain DESC
+LIMIT 10;
+
+
+-- Top 10 Worst IPOs
+SELECT
+    company,
+    issue_price,
+    listing_close,
+    listing_gain,
+    profit_loss
+FROM ipo_data
+ORDER BY listing_gain ASC
+LIMIT 10;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
